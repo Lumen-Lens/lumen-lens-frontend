@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { WasmDropzone } from "@/components/ui/WasmDropzone";
 import { SdkResult } from "./SdkResult";
 import { api, fileToBase64 } from "@/lib/api";
+import { HISTORY_EVENT, saveGeneration } from "@/lib/history";
 import type { Language } from "@/types/api";
 import type { GenerateResponse } from "@/types/api";
 
@@ -22,6 +23,16 @@ export function GeneratorForm() {
       const wasm_base64 = await fileToBase64(wasmFile);
       return api.generate({ wasm_base64, language, include_mocks: includeMocks });
     },
+    onSuccess: (data) => {
+      try {
+        saveGeneration(window.localStorage, {
+          id: crypto.randomUUID(), filename: wasmFile!.name,
+          contractName: data.spec.name, language, fileCount: data.files.length,
+          createdAt: new Date().toISOString(),
+        });
+        window.dispatchEvent(new Event(HISTORY_EVENT));
+      } catch { /* Storage restrictions must not discard a generated SDK. */ }
+    },
   });
 
   return (
@@ -30,7 +41,8 @@ export function GeneratorForm() {
 
       <WasmDropzone
         label={wasmFile ? wasmFile.name : "Drop your .wasm file here"}
-        onFile={setWasmFile}
+        disabled={mutation.isPending}
+        onFile={(file) => { setWasmFile(file); mutation.reset(); }}
       />
 
       <div className="flex flex-wrap gap-4 items-end">
@@ -43,7 +55,9 @@ export function GeneratorForm() {
             {LANGUAGES.map((l) => (
               <button
                 key={l}
-                onClick={() => setLanguage(l)}
+                disabled={mutation.isPending}
+                aria-pressed={language === l}
+                onClick={() => { setLanguage(l); mutation.reset(); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   language === l
                     ? "bg-brand-600 text-white"
@@ -60,8 +74,9 @@ export function GeneratorForm() {
         <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
           <input
             type="checkbox"
+            disabled={mutation.isPending}
             checked={includeMocks}
-            onChange={(e) => setIncludeMocks(e.target.checked)}
+            onChange={(e) => { setIncludeMocks(e.target.checked); mutation.reset(); }}
             className="rounded border-gray-600 bg-gray-800 text-brand-500"
           />
           Include mock client
@@ -78,10 +93,10 @@ export function GeneratorForm() {
       </div>
 
       {mutation.isError && (
-        <p className="text-red-400 text-sm">{mutation.error.message}</p>
+        <p role="alert" className="text-red-400 text-sm">{mutation.error.message}</p>
       )}
 
-      {mutation.data && <SdkResult data={mutation.data} language={language} />}
+      {mutation.data && <SdkResult key={mutation.submittedAt} data={mutation.data} language={language} />}
     </div>
   );
 }

@@ -25,19 +25,21 @@ export function DiffView() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card space-y-3">
           <p className="text-sm text-gray-400 font-medium">Old version</p>
           <WasmDropzone
             label={oldFile ? oldFile.name : "Old .wasm"}
-            onFile={setOldFile}
+            disabled={mutation.isPending}
+            onFile={(file) => { setOldFile(file); mutation.reset(); }}
           />
         </div>
         <div className="card space-y-3">
           <p className="text-sm text-gray-400 font-medium">New version</p>
           <WasmDropzone
             label={newFile ? newFile.name : "New .wasm"}
-            onFile={setNewFile}
+            disabled={mutation.isPending}
+            onFile={(file) => { setNewFile(file); mutation.reset(); }}
           />
         </div>
       </div>
@@ -52,7 +54,7 @@ export function DiffView() {
       </button>
 
       {mutation.isError && (
-        <p className="text-red-400 text-sm">{mutation.error.message}</p>
+        <p role="alert" className="text-red-400 text-sm">{mutation.error.message}</p>
       )}
       {mutation.data && <DiffReport report={mutation.data} />}
     </div>

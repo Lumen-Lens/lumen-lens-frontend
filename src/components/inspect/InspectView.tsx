@@ -24,7 +24,8 @@ export function InspectView() {
       <div className="card space-y-4">
         <WasmDropzone
           label={wasmFile ? wasmFile.name : "Drop .wasm to inspect"}
-          onFile={setWasmFile}
+          disabled={mutation.isPending}
+            onFile={(file) => { setWasmFile(file); mutation.reset(); }}
         />
         <button
           className="btn-primary flex items-center gap-2"
@@ -37,7 +38,7 @@ export function InspectView() {
       </div>
 
       {mutation.isError && (
-        <p className="text-red-400 text-sm">{mutation.error.message}</p>
+        <p role="alert" className="text-red-400 text-sm">{mutation.error.message}</p>
       )}
       {mutation.data && <SpecExplorer spec={mutation.data.spec} />}
     </div>
